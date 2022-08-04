@@ -1,0 +1,22 @@
+version: "3"
+services:
+    mongo:
+        container_name: mongo
+        image: mongo:latest
+        networks:
+            - game-default
+
+    main-app:
+        image: main-app
+        build: .
+        container_name: main-app
+        ports:
+            - "3000:3000"
+        depends_on:
+            - mongo
+        networks:
+            - game-default
+
+networks:
+    game-default:
+        driver: bridge

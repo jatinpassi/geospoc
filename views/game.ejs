@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <link rel="stylesheet" href="/stylesheets/style.css" />
+        <style>
+            .wrapper {
+                display: flex;
+                align-items: center;
+                flex-direction: column;
+            }
+            .output {
+                margin: 30px 0;
+                background-color: transparent;
+            }
+            .output .correct {
+                border: 1px solid green;
+                padding: 5px;
+                margin: 0 2px;
+                background-color: green;
+                color: white;
+            }
+            .output .wrong {
+                border: 1px solid red;
+                padding: 5px;
+                margin: 0 2px;
+                background-color: red;
+                color: white;
+            }
+            .output .improve {
+                border: 1px solid yellow;
+                padding: 5px;
+                margin: 0 2px;
+                background-color: yellow;
+                color: white;
+            }
+        </style>
+    </head>
+    <body>
+        <div class="wrapper">
+            <div>
+                <h1 class="winner" style="display: none">
+                    Congratulations, You are the winner of this game
+                </h1>
+                <h1 class="loss" style="display: none">Game Over</h1>
+            </div>
+            <div class="game-output"></div>
+            <div class="game-input"></div>
+        </div>
+    </body>
+    <script>
+        (async function () {
+            let token = window.localStorage.getItem("token");
+            if (token) {
+                const response = await fetch(
+                    "http://localhost:3000/users/isValid",
+                    {
+                        method: "GET",
+                        headers: {
+                            "Content-Type": "application/json",
+                            Authorization: `Basic ${token}`,
+                        },
+                    }
+                );
+                const resp = await response.json();
+
+                if (resp.message === "Valid User") {
+                    let gameInput = document.querySelector(".game-input");
+                    let output = ``;
+                    resp.data.word_list.forEach((word, index) => {
+                        output = output + `<div class="output">`;
+                        word.split("").forEach((val, subIndex) => {
+                            output =
+                                output +
+                                `<span class="${resp.data.guess_list[index][subIndex]}">${val}</span>`;
+                        });
+                        output = output + "</div>";
+                    });
+                    let gameOutput = (document.querySelector(
+                        ".game-output"
+                    ).innerHTML += output);
+                    gameInput.innerHTML = `<input class="input" type="text" style="width: 100px" maxlength="5" onkeyup="keypress()"/>`;
+                    let input = document.querySelector(".input");
+                    if (resp.data.game_status === "game wins") {
+                        input.style.display = "none";
+                        let winner = document.querySelector(".winner");
+                        winner.style.display = "block";
+                    } else if (resp.data.game_status === "game ends") {
+                        input.style.display = "none";
+                        let loss = document.querySelector(".loss");
+                        loss.style.display = "block";
+                    }
+                } else {
+                    window.localStorage.removeItem("token");
+                    window.location.replace("http://localhost:3000/");
+                }
+            } else {
+                window.localStorage.removeItem("token");
+                window.location.replace("http://localhost:3000/");
+            }
+        })();
+        async function keypress() {
+            let input = document.querySelector(".input");
+            let token = window.localStorage.getItem("token");
+            if (input.value.length === 5 && event.key === "Enter") {
+                event.stopPropagation();
+                const response = await fetch(
+                    "http://localhost:3000/game/today",
+                    {
+                        method: "POST",
+                        headers: {
+                            "Content-Type": "application/json",
+                            Authorization: `Basic ${token}`,
+                        },
+                        body: JSON.stringify({ word: input.value }),
+                    }
+                );
+                let resp = await response.json();
+                let { message, data } = resp;
+                if (message === "game wins") {
+                    input.style.display = "none";
+                    let winner = document.querySelector(".winner");
+                    winner.style.display = "block";
+                } else if (message === "game ends") {
+                    input.style.display = "none";
+                    let loss = document.querySelector(".loss");
+                    loss.style.display = "block";
+                }
+                let output = `<div class="output">`;
+                data.forEach((val, index) => {
+                    output =
+                        output +
+                        `<span class="${val}">${input.value[index]}</span>`;
+                });
+                output = output + "</div>";
+                let gameOutput = (document.querySelector(
+                    ".game-output"
+                ).innerHTML += output);
+            }
+            input.addEventListener(
+                "keypress",
+                async function (event) {
+                    console.log(event);
+                },
+                true
+            );
+        }
+    </script>
+</html>
